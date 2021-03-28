@@ -1,8 +1,38 @@
 module base36
 
-const(
-	err_invalid_base36_string = error('Invalid base36 string')
-)
+import math
+
+// Encodes any integer type to base36 string with bitcoin alphabet
+pub fn encode_int<T>(input T) ?string {
+	return encode_int_walpha<T>(input, alphabets['upper'])
+}
+
+// Encodes any integer type to base36 string with custom alphabet
+pub fn encode_int_walpha<T>(input T, alphabet &Alphabet) ?string {
+	tp := typeof(input).name
+	match tp {
+		'i8', 'i16', 'int', 'i64'/*, 'i128'*/, 'byte', 'u16', 'u32', 'u64'/*, 'u128'*/ {
+			if input < 0 {
+				return error(@MOD + '.' + @FN + ': input must be greater than zero')
+			}
+
+			mut buffer := []byte{}
+
+			mut i := input
+			for i > 0 {
+				remainder := i % 36
+				buffer << alphabet.encode[i8(remainder)]		// This needs to be casted so byte inputs can
+																// be used. i8 because remainder will never be
+																// over 36.
+				i = i / 36
+			}
+
+			return buffer.reverse().bytestr()
+		} else {
+			return error(@MOD + '.' + @FN + ': generic must be of an integer type (byte, int, u64, etc.)')
+		}
+	}
+}
 
 // Encode byte array to base36 with Bitcoin alphabet
 pub fn encode(input string) ?string {
@@ -33,7 +63,7 @@ pub fn encode_walpha(input string, alphabet &Alphabet) ?string {
 	mut carry := u32(0)
 
 	high = sz-1
-	for _, b in bin {
+	for b in bin {
 		i = sz-1
 		for carry = u32(b); i > high || carry != 0; i-- {
 			carry = carry + 256 * u32(out[i])
@@ -54,6 +84,29 @@ pub fn encode_walpha(input string, alphabet &Alphabet) ?string {
 	}
 
 	return out[..sz].bytestr()
+}
+
+// Decodes base36 string to an integer with bitcoin alphabet
+pub fn decode_int<T>(input string) ?T {
+	return decode_int_walpha<T>(input, alphabets['upper'])
+}
+
+// Decodes base36 string to an integer with custom alphabet
+pub fn decode_int_walpha<T>(input string, alphabet &Alphabet) ?T {
+	mut total := T(0)		// to hold the results
+	b36 := input.reverse()
+	for i, ch in b36 {
+		ch_i := alphabet.encode.bytestr().index_byte(ch)
+		if ch_i == -1 {
+			return error(@MOD + '.' + @FN + ': input string contains values not found in the provided alphabet ($alphabet)')
+		}
+
+		val := ch_i * math.pow(36, i)
+
+		total += T(val)
+	}
+
+	return total
 }
 
 // decodes base36 encoded bytes using the bitcoin alphabet
