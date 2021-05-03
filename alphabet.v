@@ -24,7 +24,7 @@ pub fn (alphabet &Alphabet) str() string {
 
 pub fn new_alphabet(str string) &Alphabet {
 	if str.len != 36 {
-		panic('base36 > new_alphabet(string): string must be 58 characters in length')
+		panic('base36 > new_alphabet(string): string must be 36 characters in length')
 	}
 
 	mut ret := &Alphabet{}
